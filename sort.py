@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 
 from abc      import ABCMeta, abstractmethod
-from datetime import datetime
+from time     import process_time
 from sys      import setrecursionlimit
 
-setrecursionlimit(300000)
+setrecursionlimit(200000)
 
 class Sort(object):
     """
@@ -13,24 +13,26 @@ class Sort(object):
         Manage assortment execute
     """
     def __init__(self):
-        self.types = [['InsertionSort', InsertionSort], ['SelectionSort', SelectionSort], ['BubbleSort', BubbleSort],
+        self.types = [
+                      ['InsertionSort', InsertionSort], ['SelectionSort', SelectionSort], ['BubbleSort', BubbleSort],
                       ['HeapSort', HeapSort],           ['MergeSort', MergeSort],         ['QuickSort', QuickSort],  
                       ['SmoothSort', SmoothSort]        
-                      #['ShellSort', ShellSort], ['TimSort', TimSortPython]
+                      #['ShellSort', ShellSort]
                      ]
     
     def execute_sort(self, vector, type_sort, mode_sort, db):
-        time_start = datetime.now()
-        print (f'{time_start} init {type_sort[0]} vector: {len(vector)} {mode_sort}')
+        print (f'INIT {type_sort[0]} ({len(vector)}) {mode_sort}')
         
         sort = type_sort[1]()
+
+        time_start = process_time()
         vector = sort.execute_sort(vector)
-                
-        time_end = datetime.now()
-        print (f'{time_end} end {type_sort[0]} vector: {len(vector)} {mode_sort}')
+        time_end = process_time() - time_start
         
-        db.insert_assortment(len(vector), type_sort[0], mode_sort, sort.count_compare, sort.count_moves, time_start, (time_end - time_start).total_seconds() / 60)
+        print (f'END {type_sort[0]} ({len(vector)}) {mode_sort}')
         
+        db.insert_assortment(len(vector), type_sort[0], mode_sort, sort.count_compare, sort.count_moves, time_start, time_end)
+            
         
 class AbstractSort(object):
     """
@@ -79,8 +81,8 @@ class InsertionSort(AbstractSort):
             value = vector[i]
             self.count_moves += 1
             index = i
+            if index > 0: self.count_compare += 1
             while index > 0 and vector[index-1] > value:
-                self.count_compare += 1
                 vector[index] = vector[index-1]
                 self.count_moves += 1
                 index = index - 1
@@ -97,11 +99,11 @@ class BubbleSort(AbstractSort):
         AbstractSort.__init__(self)
     
     def execute_sort(self, vector):
+        status = True
         for i in range(0, len(vector)):
-            status = True
             for j in range(1, len(vector)):
                 if vector[j] < vector[j-1]:
-                    aux          = vector[j]
+                    aux         = vector[j]
                     vector[j]   = vector[j-1]
                     vector[j-1] = aux
                     self.count_moves += 3
@@ -400,11 +402,3 @@ class SmoothSort(AbstractSort):
         size_list = self.create_heap(vector)
         self.sort_heap(vector, size_list)
         return vector
-    
-class TimSortPython(AbstractSort):
-    
-    def __init__(self):
-        AbstractSort.__init__(self)
-    
-    def execute_sort(self, vector):
-        return sorted(vector)

@@ -3,6 +3,7 @@
 import sqlite3
 import platform
 
+from time import sleep
 
 class DataSort(object):
     """
@@ -43,7 +44,7 @@ class DataSort(object):
                                         time_execute  INTEGER,
                                         count_compare INTEGER,
                                         count_moves   INTEGER,
-                                        date_execute  DATETIME);""")
+                                        time_start    INTEGER);""")
             
 
     def insert_environment(self):
@@ -56,14 +57,21 @@ class DataSort(object):
         self.db.commit()
         
         
-    def insert_assortment(self, len_vector, type_sort, mode_sort, count_compare, count_moves, date_start, time_execute):
-        self.cursor.execute(f"""INSERT INTO assortment (user_name,     len_vector,  type_sort,    mode_sort, 
-                                                        count_compare, count_moves, time_execute, date_execute)
-                                VALUES ('{platform.uname()[1]}', {len_vector}, '{type_sort}', '{mode_sort}', 
-                                         {count_compare}, {count_moves}, {time_execute}, '{date_start}');""")
-        self.db.commit()
-        
-        
+    def insert_assortment(self, len_vector, type_sort, mode_sort, count_compare, count_moves, time_start, time_execute):
+        count_locked = 0
+        while True:
+            try:
+                self.cursor.execute(f"""INSERT INTO assortment (user_name,     len_vector,  type_sort,    mode_sort, 
+                                                                count_compare, count_moves, time_execute, time_start)
+                                        VALUES ('{platform.uname()[1]}', {len_vector}, '{type_sort}', '{mode_sort}', 
+                                                {count_compare}, {count_moves}, {time_execute}, '{time_start}');""")
+                self.db.commit()
+                break
+            except sqlite3.OperationalError:
+                count_locked += 1
+                print (f'SQLite DB locked: {count_locked}')
+                sleep(1)
+                
     def select_environment(self):
         return self.cursor.execute(f"SELECT * FROM environment WHERE user_name='{platform.uname()[1]}';").fetchall()[0]
         
@@ -74,4 +82,7 @@ class DataSort(object):
                                                    mode_sort='{mode_sort}' AND
                                                    type_sort='{type_sort}'
                                                    ORDER BY len_vector;""").fetchall()
+
+    def select_all_assortment(self):
+        return self.cursor.execute("SELECT * FROM assortment;").fetchall()
     
